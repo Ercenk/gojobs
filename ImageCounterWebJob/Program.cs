@@ -94,7 +94,10 @@ namespace ImageCounterWebJob
                     continue;
                 }
 
-                existingBlob.Delete();
+                if (newBLob.Exists())
+                {
+                    existingBlob.Delete(); 
+                }
                 copied++;
             }
 

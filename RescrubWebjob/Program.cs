@@ -7,6 +7,7 @@
     using System.Linq;
     using System.Threading;
 
+    using Microsoft.Azure.WebJobs;
     using Microsoft.WindowsAzure.Storage;
     using Microsoft.WindowsAzure.Storage.Auth;
     using Microsoft.WindowsAzure.Storage.Blob;
@@ -18,19 +19,20 @@
         // AzureWebJobsDashboard and AzureWebJobsStorage
         public static void Main()
         {
-            //var host = new JobHost();
-            //host.Call(typeof(Program).GetMethod("ProcessCounts"));
-            ProcessCounts();
+            var host = new JobHost();
+            host.Call(typeof(Program).GetMethod("ProcessCounts"));
+            //ProcessCounts();
         }
 
+        [NoAutomaticTrigger]
         public static void ProcessCounts()
         {
             var storageAccount =
-    new CloudStorageAccount(
-        new StorageCredentials(
-            "abacusdms",
-            "F6D2Y+S4L1F/uOHFapj9hEr4yuUX5wCXf/0nW2NuPdGrlV1VoSD7qMl0yet1QI7O7CX4CP+DkNKtPVLyT+IlGQ=="),
-        false);
+                new CloudStorageAccount(
+                    new StorageCredentials(
+                        "abacusdms",
+                        "F6D2Y+S4L1F/uOHFapj9hEr4yuUX5wCXf/0nW2NuPdGrlV1VoSD7qMl0yet1QI7O7CX4CP+DkNKtPVLyT+IlGQ=="),
+                    false);
 
             var blobClient = new CloudBlobClient(storageAccount.BlobEndpoint, storageAccount.Credentials);
 
@@ -98,7 +100,10 @@
                             continue;
                         }
 
-                        blob.Delete();
+                        if (newBlob.Exists())
+                        {
+                            blob.Delete();
+                        }
                     }
                 }
             }
@@ -106,6 +111,6 @@
 
         }
 
-       
+
     }
 }
