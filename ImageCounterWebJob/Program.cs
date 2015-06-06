@@ -7,6 +7,8 @@ using Microsoft.Azure.WebJobs;
 
 namespace ImageCounterWebJob
 {
+    using System.Data;
+    using System.Data.SqlClient;
     using System.Globalization;
     using System.Threading;
 
@@ -42,84 +44,104 @@ namespace ImageCounterWebJob
             var allSeenContainer = blobClient.GetContainerReference("gurbetoylaritaranmis");
             allSeenContainer.CreateIfNotExists();
 
-            var metaDataKey = "Timesseen";
-
             var unprocessedImages = imagesContainer.ListBlobs("tutanakcanavari", true).Where(item => (item is CloudBlockBlob)).ToList();
 
-            var processedImages = unprocessedImages.AsParallel().Where(
-                b =>
+            using (var conn = new SqlConnection
+            {
+                ConnectionString =
+                               "Server=tcp:iurk7gqc60.database.windows.net,1433;Database=gurbetinoylari;User ID=gurbetinoylari@iurk7gqc60;Password=Guvenli1SecimOlsun;Trusted_Connection=False;Encrypt=True;Connection Timeout=30;"
+            })
+            {
+                using (var cmd = new SqlCommand("SPC_SAGLAMTUTANAK", conn))
+                {
+                    var adapter = new SqlDataAdapter(cmd)
                     {
-                        var blob = b as CloudBlockBlob;
-                        if (blob == null)
+                        SelectCommand =
+                                              {
+                                                  CommandType =
+                                                      System.Data.CommandType
+                                                      .StoredProcedure
+                                              }
+                    };
+
+                    var dataTable = new DataTable();
+                    adapter.Fill(dataTable);
+                    var images =
+                        Enumerable.Select(dataTable.AsEnumerable(), row => row["IMAJ"] as string).Distinct().ToList();
+
+
+                    var copied = 0;
+
+                    foreach (var image in images)
+                    {
+                        var imageUri = new Uri(image);
+                        var name = string.Join("", imageUri.Segments.Skip(2));
+                        if (unprocessedImages.All(b => b.Uri.AbsoluteUri != image))
                         {
-                            return false;
+                            continue;
                         }
 
-                        blob.FetchAttributes();
+                        var blob = imagesContainer.GetBlockBlobReference(name);
 
-                        var timesSeen = blob.Metadata.Keys.Any(k => k == metaDataKey)
-                                            ? Convert.ToInt16(blob.Metadata[metaDataKey])
-                                            : 0;
-                        return timesSeen >= 3;
-                    }).ToList();
-
-            var copied = 0;
-            foreach (var processedImage in processedImages)
-            {
-                var existingBlob = processedImage as CloudBlockBlob;
-                var name = string.Join("", processedImage.Uri.Segments.Skip(2));
-                var newBLob =
-                    allSeenContainer.GetBlockBlobReference(name);
-                newBLob.StartCopyFromBlob(existingBlob);
-
-                var autoResetEvent = new AutoResetEvent(false);
-                var timer = new Timer(
-                    s =>
+                        if (!blob.Exists())
                         {
-                            var autoEvent = (AutoResetEvent)s;
-                            if (newBLob.CopyState.Status != CopyStatus.Pending)
+                            continue;
+                        }
+
+                        var newBlob = allSeenContainer.GetBlockBlobReference(name);
+                        newBlob.StartCopyFromBlob(blob);
+
+                        var autoResetEvent = new AutoResetEvent(false);
+                        var timer = new Timer(
+                            s =>
                             {
-                                autoEvent.Set();
-                            }
-                        }, autoResetEvent, 1000, 500);
-                autoResetEvent.WaitOne();
-                timer.Dispose();
-                if (newBLob.CopyState.Status != CopyStatus.Success)
-                {
-                    continue;
-                }
+                                var autoEvent = (AutoResetEvent)s;
+                                if (newBlob.CopyState.Status != CopyStatus.Pending)
+                                {
+                                    autoEvent.Set();
+                                }
+                            },
+                            autoResetEvent,
+                            1000,
+                            500);
+                        autoResetEvent.WaitOne();
+                        timer.Dispose();
+                        if (newBlob.CopyState.Status != CopyStatus.Success)
+                        {
+                            continue;
+                        }
 
-                if (existingBlob == null)
-                {
-                    continue;
-                }
+                        if (!newBlob.Exists())
+                        {
+                            continue;
+                        }
 
-                if (newBLob.Exists())
-                {
-                    existingBlob.Delete(); 
+                        blob.Delete();
+                        copied++;
+                    }
+
+                    var totalProcessed =
+                        allSeenContainer.ListBlobs("tutanakcanavari", true).Count(item => (item is CloudBlockBlob));
+                    var remaining = unprocessedImages.Count() - copied;
+
+                    var turkishNow = DateTime.UtcNow.ToString("f", new CultureInfo("tr-TR"));
+                    var resultHtml =
+                        string.Format(@"<p>{0} (UTC) itibari ile, toplam tutanak: <b>{1}</b></p><p>Taranan tutanaklar: <b><font color = ""green""> {2}</font></b></p>  <p>Taranmasi gereken tutanaklar: <b><font color = ""red"">{3}</font></b></p>",
+                            turkishNow, totalProcessed + remaining, totalProcessed, remaining);
+
+                    var summaryBlobContainer = blobClient.GetContainerReference("gurbetoylaritutanakmetadata");
+                    summaryBlobContainer.CreateIfNotExists();
+
+                    var summaryBlob = summaryBlobContainer.GetBlockBlobReference("metadata/tutanakcounter.html");
+                    if (summaryBlob.Exists())
+                    {
+                        summaryBlob.Delete();
+                    }
+                    summaryBlob.UploadText(resultHtml);
                 }
-                copied++;
             }
 
-            var totalProcessed =
-                allSeenContainer.ListBlobs("tutanakcanavari", true).Count(item => (item is CloudBlockBlob));
-            var remaining = unprocessedImages.Count() - copied;
 
-            var turkishNow = DateTime.UtcNow.ToString("f", new CultureInfo("tr-TR"));
-            var resultHtml =
-                $@"<p>{turkishNow} (UTC) itibari ile, toplam tutanak: <b>{totalProcessed + remaining
-                    }</b></p><p>Taranan tutanaklar: <b><font color = ""green""> {totalProcessed
-                    }</font></b></p>  <p>Taranmasi gereken tutanaklar: <b><font color = ""red"">{remaining}</font></b></p>";
-
-            var summaryBlobContainer = blobClient.GetContainerReference("gurbetoylaritutanakmetadata");
-            summaryBlobContainer.CreateIfNotExists();
-
-            var summaryBlob = summaryBlobContainer.GetBlockBlobReference("metadata/tutanakcounter.html");
-            if (summaryBlob.Exists())
-            {
-                summaryBlob.Delete();
-            }
-            summaryBlob.UploadText(resultHtml);
         }
     }
 }
