@@ -118,6 +118,12 @@ namespace ImageCounterWebJob
 
                         blob.Delete();
                         copied++;
+                        var blobUrlToRemove = unprocessedImages.FirstOrDefault(b => b.Uri.AbsoluteUri == image);
+                        if (blobUrlToRemove != default(IListBlobItem))
+                        {
+                            unprocessedImages.Remove(blobUrlToRemove);
+                        }
+
                     }
 
                     var totalProcessed =
@@ -138,6 +144,12 @@ namespace ImageCounterWebJob
                         summaryBlob.Delete();
                     }
                     summaryBlob.UploadText(resultHtml);
+
+
+                    var urlsBlob = summaryBlobContainer.GetBlockBlobReference("metadata/urls.txt");
+                    var urlArray = unprocessedImages.Select(b => b.Uri.AbsoluteUri).ToArray();
+
+                    urlsBlob.UploadText(string.Join(",", urlArray));
                 }
             }
 

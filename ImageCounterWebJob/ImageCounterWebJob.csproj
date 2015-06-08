@@ -93,12 +93,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
-    <Compile Include="Functions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
     <None Include="packages.config" />
+    <None Include="Properties\PublishProfiles\gurbetinoylari %282%29.pubxml" />
     <None Include="Properties\PublishProfiles\gurbetinoylari.pubxml" />
     <None Include="Properties\webjob-publish-settings.json" />
   </ItemGroup>
