@@ -7,6 +7,17 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageCounterWebJob", "Image
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RescrubWebjob", "RescrubWebjob\RescrubWebjob.csproj", "{168B1B48-3C74-4793-888C-49989E749CCB}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "PublishScripts", "PublishScripts", "{3584E7DB-08EA-4069-AC9C-CD8D946E027D}"
+	ProjectSection(SolutionItems) = preProject
+		PublishScripts\AzureWebsitePublishModule.psm1 = PublishScripts\AzureWebsitePublishModule.psm1
+		PublishScripts\Publish-WebApplicationWebsite.ps1 = PublishScripts\Publish-WebApplicationWebsite.ps1
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Configurations", "Configurations", "{DCEC61C0-AC30-49B3-9155-C5A23579B6DD}"
+	ProjectSection(SolutionItems) = preProject
+		PublishScripts\Configurations\GoAnaliz-WAWS-dev.json = PublishScripts\Configurations\GoAnaliz-WAWS-dev.json
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +35,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{DCEC61C0-AC30-49B3-9155-C5A23579B6DD} = {3584E7DB-08EA-4069-AC9C-CD8D946E027D}
 	EndGlobalSection
 EndGlobal

@@ -30,8 +30,8 @@
             var storageAccount =
                 new CloudStorageAccount(
                     new StorageCredentials(
-                        "abacusdms",
-                        "F6D2Y+S4L1F/uOHFapj9hEr4yuUX5wCXf/0nW2NuPdGrlV1VoSD7qMl0yet1QI7O7CX4CP+DkNKtPVLyT+IlGQ=="),
+                        "",
+                        ""),
                     false);
 
             var blobClient = new CloudBlobClient(storageAccount.BlobEndpoint, storageAccount.Credentials);
@@ -42,7 +42,7 @@
             using (var conn = new SqlConnection
             {
                 ConnectionString =
-                               "Server=tcp:iurk7gqc60.database.windows.net,1433;Database=gurbetinoylari;User ID=gurbetinoylari@iurk7gqc60;Password=Guvenli1SecimOlsun;Trusted_Connection=False;Encrypt=True;Connection Timeout=30;"
+                               ""
             })
             {
                 using (var cmd = new SqlCommand("SPC_FARKLITUTANAK", conn))
